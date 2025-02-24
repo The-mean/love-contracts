@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+/* React Quill Özelleştirmeleri */
+.quill {
+  @apply bg-base-100;
+}
+
+.ql-toolbar.ql-snow {
+  @apply border-base-300 rounded-t-lg bg-base-200;
+}
+
+.ql-container.ql-snow {
+  @apply border-base-300 rounded-b-lg min-h-[200px];
+}
+
+.ql-editor {
+  @apply prose max-w-none;
+}
+
+.ql-editor.ql-blank::before {
+  @apply text-neutral/50;
+}
+
+/* Karanlık tema için özelleştirmeler */
+[data-theme='dark'] .ql-toolbar.ql-snow {
+  @apply border-base-300 bg-base-200;
+}
+
+[data-theme='dark'] .ql-container.ql-snow {
+  @apply border-base-300;
+}
+
+[data-theme='dark'] .ql-editor {
+  @apply text-base-content;
+}
+
+[data-theme='dark'] .ql-snow .ql-stroke {
+  @apply stroke-base-content;
+}
+
+[data-theme='dark'] .ql-snow .ql-fill {
+  @apply fill-base-content;
+}
+
+[data-theme='dark'] .ql-snow .ql-picker {
+  @apply text-base-content;
+}
+
+[data-theme='dark'] .ql-snow .ql-picker-options {
+  @apply bg-base-200 border-base-300;
+}
