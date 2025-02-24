@@ -6,35 +6,35 @@ require("dotenv").config();
 
 const router = express.Router();
 
-// Debug fonksiyonu
+// Debug function
 const debugLog = (message, data) => {
     console.log(`[DEBUG] ${message}:`, data);
 };
 
-// Kullanıcı Kaydı
+// User Registration
 router.post("/register", async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-        return res.status(400).json({ message: "Email ve şifre zorunludur" });
+        return res.status(400).json({ message: "Email and password are required" });
     }
 
     try {
-        // Email formatını kontrol et
+        // Check email format
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
-            return res.status(400).json({ message: "Geçersiz email formatı" });
+            return res.status(400).json({ message: "Invalid email format" });
         }
 
-        // Email benzersiz mi kontrol et
+        // Check if email is unique
         const [existingUsers] = await pool.execute("SELECT id FROM users WHERE email = ?", [email]);
         if (existingUsers.length > 0) {
-            return res.status(400).json({ message: "Bu email adresi zaten kullanımda" });
+            return res.status(400).json({ message: "Email is already in use" });
         }
 
-        // Şifre uzunluğunu kontrol et
+        // Check password length
         if (password.length < 6) {
-            return res.status(400).json({ message: "Şifre en az 6 karakter olmalıdır" });
+            return res.status(400).json({ message: "Password must be at least 6 characters long" });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -43,22 +43,22 @@ router.post("/register", async (req, res) => {
             [email, hashedPassword]
         );
 
-        debugLog("Yeni kullanıcı kaydedildi", { userId: result.insertId, email });
+        debugLog("New user registered", { userId: result.insertId, email });
 
         res.status(201).json({
-            message: "Kullanıcı başarıyla kaydedildi",
+            message: "User registered successfully",
             userId: result.insertId
         });
     } catch (err) {
-        console.error('Kayıt hatası:', err);
+        console.error('Registration error:', err);
         res.status(500).json({
-            message: "Kullanıcı kaydedilirken bir hata oluştu",
+            message: "An error occurred during registration",
             error: err.message
         });
     }
 });
 
-// Kullanıcı Girişi
+// User Login
 router.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
@@ -66,15 +66,15 @@ router.post("/login", async (req, res) => {
         const [users] = await pool.execute("SELECT * FROM users WHERE email = ?", [email]);
 
         if (users.length === 0) {
-            return res.status(401).json({ message: "Email veya şifre hatalı" });
+            return res.status(401).json({ message: "Invalid email or password" });
         }
 
         const user = users[0];
-        debugLog("Kullanıcı bulundu", { userId: user.id, email: user.email });
+        debugLog("User found", { userId: user.id, email: user.email });
 
         const passwordMatch = await bcrypt.compare(password, user.password);
         if (!passwordMatch) {
-            return res.status(401).json({ message: "Email veya şifre hatalı" });
+            return res.status(401).json({ message: "Invalid email or password" });
         }
 
         const token = jwt.sign(
@@ -83,7 +83,7 @@ router.post("/login", async (req, res) => {
             { expiresIn: "24h" }
         );
 
-        debugLog("Token oluşturuldu", { userId: user.id, tokenPayload: jwt.decode(token) });
+        debugLog("Token created", { userId: user.id, tokenPayload: jwt.decode(token) });
 
         res.json({
             token,
@@ -93,21 +93,21 @@ router.post("/login", async (req, res) => {
             }
         });
     } catch (err) {
-        console.error('Giriş hatası:', err);
+        console.error('Login error:', err);
         res.status(500).json({
-            message: "Giriş yapılırken bir hata oluştu",
+            message: "An error occurred during login",
             error: err.message
         });
     }
 });
 
-// Token Doğrulama (Test endpoint)
+// Token Verification (Test endpoint)
 router.get("/verify", async (req, res) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
-        return res.status(401).json({ message: "Token bulunamadı" });
+        return res.status(401).json({ message: "Token not found" });
     }
 
     try {
@@ -115,15 +115,15 @@ router.get("/verify", async (req, res) => {
         const [users] = await pool.execute("SELECT id, email FROM users WHERE id = ?", [decoded.userId]);
 
         if (users.length === 0) {
-            return res.status(404).json({ message: "Kullanıcı bulunamadı" });
+            return res.status(404).json({ message: "User not found" });
         }
 
         res.json({
-            message: "Token geçerli",
+            message: "Token is valid",
             user: users[0]
         });
     } catch (err) {
-        res.status(403).json({ message: "Geçersiz token", error: err.message });
+        res.status(403).json({ message: "Invalid token", error: err.message });
     }
 });
 

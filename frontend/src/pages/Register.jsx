@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import Button from '../components/Button';
 
 const Register = () => {
@@ -9,7 +10,8 @@ const Register = () => {
         confirmPassword: '',
     });
     const [error, setError] = useState('');
-    const navigate = useNavigate();
+    const [loading, setLoading] = useState(false);
+    const { register } = useAuth();
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -24,45 +26,39 @@ const Register = () => {
         setError('');
 
         if (formData.password !== formData.confirmPassword) {
-            setError('Şifreler eşleşmiyor');
+            setError('Passwords do not match');
             return;
         }
 
-        try {
-            const response = await fetch('http://localhost:5000/api/auth/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    email: formData.email,
-                    password: formData.password,
-                }),
-            });
+        setLoading(true);
 
-            const data = await response.json();
+        const result = await register(formData.email, formData.password);
 
-            if (!response.ok) {
-                throw new Error(data.message || 'Kayıt olurken bir hata oluştu');
-            }
-
-            navigate('/login');
-        } catch (err) {
-            setError(err.message);
+        if (!result.success) {
+            setError(result.error);
         }
+
+        setLoading(false);
     };
 
     return (
-        <div className="min-h-screen bg-base-200 flex items-center justify-center">
-            <div className="card w-96 bg-base-100 shadow-xl">
-                <div className="card-body">
-                    <h2 className="card-title justify-center text-2xl font-bold mb-4">Kayıt Ol</h2>
+        <div className="min-h-screen bg-background-light flex items-center justify-center px-4">
+            <div className="card w-full max-w-md bg-white shadow-xl">
+                <div className="card-body space-y-6">
+                    <h2 className="card-title text-2xl font-bold text-center justify-center">
+                        Register
+                    </h2>
+
                     {error && (
-                        <div className="alert alert-error mb-4">
+                        <div className="alert alert-error text-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
                             <span>{error}</span>
                         </div>
                     )}
-                    <form onSubmit={handleSubmit}>
+
+                    <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="form-control">
                             <label className="label">
                                 <span className="label-text">Email</span>
@@ -72,50 +68,62 @@ const Register = () => {
                                 name="email"
                                 value={formData.email}
                                 onChange={handleChange}
-                                placeholder="ornek@email.com"
-                                className="input input-bordered"
+                                placeholder="example@email.com"
+                                className="input input-bordered w-full"
                                 required
                             />
                         </div>
-                        <div className="form-control mt-4">
+
+                        <div className="form-control">
                             <label className="label">
-                                <span className="label-text">Şifre</span>
+                                <span className="label-text">Password</span>
                             </label>
                             <input
                                 type="password"
                                 name="password"
                                 value={formData.password}
                                 onChange={handleChange}
-                                placeholder="********"
-                                className="input input-bordered"
+                                placeholder="••••••••"
+                                className="input input-bordered w-full"
                                 required
                             />
                         </div>
-                        <div className="form-control mt-4">
+
+                        <div className="form-control">
                             <label className="label">
-                                <span className="label-text">Şifre Tekrar</span>
+                                <span className="label-text">Confirm Password</span>
                             </label>
                             <input
                                 type="password"
                                 name="confirmPassword"
                                 value={formData.confirmPassword}
                                 onChange={handleChange}
-                                placeholder="********"
-                                className="input input-bordered"
+                                placeholder="••••••••"
+                                className="input input-bordered w-full"
                                 required
                             />
                         </div>
-                        <div className="form-control mt-6">
-                            <Button type="submit" variant="primary">
-                                Kayıt Ol
-                            </Button>
-                        </div>
+
+                        <Button
+                            type="submit"
+                            variant="primary"
+                            className="w-full"
+                            disabled={loading}
+                        >
+                            {loading ? (
+                                <span className="loading loading-spinner loading-sm"></span>
+                            ) : (
+                                'Register'
+                            )}
+                        </Button>
                     </form>
-                    <div className="divider">VEYA</div>
-                    <p className="text-center">
-                        Zaten hesabınız var mı?{' '}
-                        <Link to="/login" className="link link-primary">
-                            Giriş Yap
+
+                    <div className="divider">OR</div>
+
+                    <p className="text-center text-sm">
+                        Already have an account?{' '}
+                        <Link to="/login" className="text-primary hover:underline font-medium">
+                            Login
                         </Link>
                     </p>
                 </div>

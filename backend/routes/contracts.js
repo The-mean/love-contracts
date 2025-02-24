@@ -3,13 +3,13 @@ const router = express.Router();
 const pool = require('../config/db');
 const jwt = require('jsonwebtoken');
 
-// Token doğrulama middleware
+// Token authentication middleware
 const authenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
-        return res.status(401).json({ message: 'Yetkilendirme gerekli' });
+        return res.status(401).json({ message: 'Authentication required' });
     }
 
     try {
@@ -17,27 +17,27 @@ const authenticateToken = (req, res, next) => {
         req.userId = decoded.userId;
         next();
     } catch (err) {
-        return res.status(403).json({ message: 'Geçersiz token' });
+        return res.status(403).json({ message: 'Invalid token' });
     }
 };
 
-// Sözleşme oluştur
+// Create contract
 router.post('/', authenticateToken, async (req, res) => {
     const { title, content, partnerEmail } = req.body;
     const userId = req.userId;
 
     try {
-        // Kullanıcının varlığını kontrol et
+        // Check if user exists
         const [users] = await pool.execute(
             'SELECT id FROM users WHERE id = ?',
             [userId]
         );
 
         if (users.length === 0) {
-            return res.status(404).json({ message: 'Kullanıcı bulunamadı' });
+            return res.status(404).json({ message: 'User not found' });
         }
 
-        // Partner'ı bul (eğer belirtildiyse)
+        // Find partner (if specified)
         let partnerId = null;
         if (partnerEmail) {
             const [partners] = await pool.execute(
@@ -47,30 +47,30 @@ router.post('/', authenticateToken, async (req, res) => {
             if (partners.length > 0) {
                 partnerId = partners[0].id;
             } else {
-                return res.status(404).json({ message: 'Partner email adresi bulunamadı' });
+                return res.status(404).json({ message: 'Partner email not found' });
             }
         }
 
-        // Sözleşmeyi oluştur
+        // Create contract
         const [result] = await pool.execute(
             'INSERT INTO contracts (title, content, user_id, partner_id) VALUES (?, ?, ?, ?)',
             [title, content, userId, partnerId]
         );
 
         res.status(201).json({
-            message: 'Sözleşme başarıyla oluşturuldu',
+            message: 'Contract created successfully',
             contractId: result.insertId
         });
     } catch (err) {
-        console.error('Sözleşme oluşturma hatası:', err);
+        console.error('Contract creation error:', err);
         res.status(500).json({
-            message: 'Sözleşme oluşturulurken bir hata oluştu',
+            message: 'An error occurred while creating the contract',
             error: err.message
         });
     }
 });
 
-// Tüm sözleşmeleri getir
+// Get all contracts
 router.get('/', authenticateToken, async (req, res) => {
     try {
         const [contracts] = await pool.execute(
@@ -84,15 +84,15 @@ router.get('/', authenticateToken, async (req, res) => {
 
         res.json(contracts);
     } catch (err) {
-        console.error('Sözleşme listesi hatası:', err);
+        console.error('Contract list error:', err);
         res.status(500).json({
-            message: 'Sözleşmeler getirilirken bir hata oluştu',
+            message: 'An error occurred while fetching contracts',
             error: err.message
         });
     }
 });
 
-// Tek bir sözleşmeyi getir
+// Get single contract
 router.get('/:id', authenticateToken, async (req, res) => {
     try {
         const [contracts] = await pool.execute(
@@ -105,20 +105,20 @@ router.get('/:id', authenticateToken, async (req, res) => {
         );
 
         if (contracts.length === 0) {
-            return res.status(404).json({ message: 'Sözleşme bulunamadı' });
+            return res.status(404).json({ message: 'Contract not found' });
         }
 
         res.json(contracts[0]);
     } catch (err) {
-        console.error('Sözleşme detay hatası:', err);
+        console.error('Contract detail error:', err);
         res.status(500).json({
-            message: 'Sözleşme getirilirken bir hata oluştu',
+            message: 'An error occurred while fetching the contract',
             error: err.message
         });
     }
 });
 
-// Sözleşme güncelle
+// Update contract
 router.put('/:id', authenticateToken, async (req, res) => {
     const { title, content } = req.body;
 
@@ -129,7 +129,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
         );
 
         if (contract.length === 0) {
-            return res.status(404).json({ message: 'Sözleşme bulunamadı veya düzenleme yetkiniz yok' });
+            return res.status(404).json({ message: 'Contract not found or you do not have permission to edit' });
         }
 
         await pool.execute(
@@ -137,17 +137,17 @@ router.put('/:id', authenticateToken, async (req, res) => {
             [title, content, req.params.id]
         );
 
-        res.json({ message: 'Sözleşme başarıyla güncellendi' });
+        res.json({ message: 'Contract updated successfully' });
     } catch (err) {
-        console.error('Sözleşme güncelleme hatası:', err);
+        console.error('Contract update error:', err);
         res.status(500).json({
-            message: 'Sözleşme güncellenirken bir hata oluştu',
+            message: 'An error occurred while updating the contract',
             error: err.message
         });
     }
 });
 
-// Sözleşme sil
+// Delete contract
 router.delete('/:id', authenticateToken, async (req, res) => {
     try {
         const [result] = await pool.execute(
@@ -156,14 +156,14 @@ router.delete('/:id', authenticateToken, async (req, res) => {
         );
 
         if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Sözleşme bulunamadı veya silme yetkiniz yok' });
+            return res.status(404).json({ message: 'Contract not found or you do not have permission to delete' });
         }
 
-        res.json({ message: 'Sözleşme başarıyla silindi' });
+        res.json({ message: 'Contract deleted successfully' });
     } catch (err) {
-        console.error('Sözleşme silme hatası:', err);
+        console.error('Contract deletion error:', err);
         res.status(500).json({
-            message: 'Sözleşme silinirken bir hata oluştu',
+            message: 'An error occurred while deleting the contract',
             error: err.message
         });
     }

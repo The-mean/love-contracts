@@ -17,9 +17,9 @@ const Navbar = () => {
                                 </svg>
                             </div>
                             <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-lg w-52">
-                                <li><Link to="/" className="text-neutral/80 hover:text-primary">Ana Sayfa</Link></li>
+                                <li><Link to="/" className="text-neutral/80 hover:text-primary">Home</Link></li>
                                 <li><Link to="/dashboard" className="text-neutral/80 hover:text-primary">Dashboard</Link></li>
-                                <li><Link to="/create-contract" className="text-neutral/80 hover:text-primary">Yeni Sözleşme</Link></li>
+                                <li><Link to="/create-contract" className="text-neutral/80 hover:text-primary">New Contract</Link></li>
                             </ul>
                         </div>
                         <Link to="/" className="text-xl font-bold text-primary hover:opacity-80 transition-opacity">
@@ -28,9 +28,9 @@ const Navbar = () => {
                     </div>
                     <div className="navbar-center hidden lg:flex">
                         <ul className="menu menu-horizontal px-1 gap-2">
-                            <li><Link to="/" className="text-neutral/80 hover:text-primary">Ana Sayfa</Link></li>
+                            <li><Link to="/" className="text-neutral/80 hover:text-primary">Home</Link></li>
                             <li><Link to="/dashboard" className="text-neutral/80 hover:text-primary">Dashboard</Link></li>
-                            <li><Link to="/create-contract" className="text-neutral/80 hover:text-primary">Yeni Sözleşme</Link></li>
+                            <li><Link to="/create-contract" className="text-neutral/80 hover:text-primary">New Contract</Link></li>
                         </ul>
                     </div>
                     <div className="navbar-end gap-2">
@@ -47,7 +47,7 @@ const Navbar = () => {
                                     onClick={logout}
                                     className="btn btn-error text-white rounded-full"
                                 >
-                                    Çıkış Yap
+                                    Logout
                                 </button>
                             </>
                         ) : (
@@ -56,13 +56,13 @@ const Navbar = () => {
                                     to="/login"
                                     className="btn btn-ghost text-neutral/80 hover:text-primary hidden sm:inline-flex"
                                 >
-                                    Giriş Yap
+                                    Login
                                 </Link>
                                 <Link
                                     to="/register"
                                     className="btn btn-primary rounded-full"
                                 >
-                                    Kayıt Ol
+                                    Register
                                 </Link>
                             </>
                         )}

@@ -39,7 +39,7 @@ const Login = () => {
             <div className="card w-full max-w-md bg-white shadow-xl">
                 <div className="card-body space-y-6">
                     <h2 className="card-title text-2xl font-bold text-center justify-center">
-                        Giriş Yap
+                        Login
                     </h2>
 
                     {error && (
@@ -61,7 +61,7 @@ const Login = () => {
                                 name="email"
                                 value={formData.email}
                                 onChange={handleChange}
-                                placeholder="ornek@email.com"
+                                placeholder="example@email.com"
                                 className="input input-bordered w-full"
                                 required
                             />
@@ -69,7 +69,7 @@ const Login = () => {
 
                         <div className="form-control">
                             <label className="label">
-                                <span className="label-text">Şifre</span>
+                                <span className="label-text">Password</span>
                             </label>
                             <input
                                 type="password"
@@ -91,17 +91,17 @@ const Login = () => {
                             {loading ? (
                                 <span className="loading loading-spinner loading-sm"></span>
                             ) : (
-                                'Giriş Yap'
+                                'Login'
                             )}
                         </Button>
                     </form>
 
-                    <div className="divider">VEYA</div>
+                    <div className="divider">OR</div>
 
                     <p className="text-center text-sm">
-                        Hesabınız yok mu?{' '}
+                        Don't have an account?{' '}
                         <Link to="/register" className="text-primary hover:underline font-medium">
-                            Kayıt Ol
+                            Register
                         </Link>
                     </p>
                 </div>
