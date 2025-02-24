@@ -1,37 +1,30 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
-const authenticateToken = require('../middleware/authenticateToken');
+const { verifyToken } = require('../middleware/auth');
 
-// Tüm şablonları listele
-router.get('/', authenticateToken, async (req, res) => {
+// Debug function
+const debug = (message) => {
+    if (process.env.NODE_ENV === 'development') {
+        console.log(message);
+    }
+};
+
+// Get all templates
+router.get('/', async (req, res) => {
     try {
         const [templates] = await pool.query(
-            'SELECT id, title, description, category, created_at FROM templates WHERE is_public = true ORDER BY title ASC'
+            'SELECT * FROM templates WHERE is_public = true ORDER BY created_at DESC'
         );
         res.json(templates);
-    } catch (err) {
-        console.error('Şablonları getirme hatası:', err);
-        res.status(500).json({ message: 'Şablonlar yüklenirken bir hata oluştu' });
+    } catch (error) {
+        debug('Get templates error:', error);
+        res.status(500).json({ message: 'An error occurred while fetching templates' });
     }
 });
 
-// Kategori bazlı şablonları getir
-router.get('/category/:category', authenticateToken, async (req, res) => {
-    try {
-        const [templates] = await pool.query(
-            'SELECT id, title, description, category, created_at FROM templates WHERE category = ? AND is_public = true ORDER BY title ASC',
-            [req.params.category]
-        );
-        res.json(templates);
-    } catch (err) {
-        console.error('Kategori şablonlarını getirme hatası:', err);
-        res.status(500).json({ message: 'Şablonlar yüklenirken bir hata oluştu' });
-    }
-});
-
-// Belirli bir şablonu getir
-router.get('/:id', authenticateToken, async (req, res) => {
+// Get a specific template
+router.get('/:id', async (req, res) => {
     try {
         const [templates] = await pool.query(
             'SELECT * FROM templates WHERE id = ? AND is_public = true',
@@ -39,53 +32,85 @@ router.get('/:id', authenticateToken, async (req, res) => {
         );
 
         if (templates.length === 0) {
-            return res.status(404).json({ message: 'Şablon bulunamadı' });
+            return res.status(404).json({ message: 'Template not found' });
         }
 
         res.json(templates[0]);
-    } catch (err) {
-        console.error('Şablon getirme hatası:', err);
-        res.status(500).json({ message: 'Şablon yüklenirken bir hata oluştu' });
+    } catch (error) {
+        debug('Get template error:', error);
+        res.status(500).json({ message: 'An error occurred while fetching the template' });
     }
 });
 
-// Şablondan yeni sözleşme oluştur
-router.post('/:id/create-contract', authenticateToken, async (req, res) => {
-    const connection = await pool.getConnection();
+// Create a new template (admin only)
+router.post('/', verifyToken, async (req, res) => {
     try {
-        await connection.beginTransaction();
+        const { title, description, content, category } = req.body;
 
-        // Şablonu getir
-        const [templates] = await connection.query(
-            'SELECT * FROM templates WHERE id = ? AND is_public = true',
+        // Validate input
+        if (!title || !description || !content || !category) {
+            return res.status(400).json({ message: 'Title, description, content, and category are required' });
+        }
+
+        // Create template
+        const [result] = await pool.query(
+            'INSERT INTO templates (title, description, content, category, is_public) VALUES (?, ?, ?, ?, ?)',
+            [title, description, content, category, true]
+        );
+
+        res.status(201).json({
+            message: 'Template created successfully',
+            id: result.insertId
+        });
+    } catch (error) {
+        debug('Create template error:', error);
+        res.status(500).json({ message: 'An error occurred while creating the template' });
+    }
+});
+
+// Update a template (admin only)
+router.put('/:id', verifyToken, async (req, res) => {
+    try {
+        const { title, description, content, category } = req.body;
+
+        // Validate input
+        if (!title || !description || !content || !category) {
+            return res.status(400).json({ message: 'Title, description, content, and category are required' });
+        }
+
+        // Update template
+        const [result] = await pool.query(
+            'UPDATE templates SET title = ?, description = ?, content = ?, category = ? WHERE id = ?',
+            [title, description, content, category, req.params.id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Template not found' });
+        }
+
+        res.json({ message: 'Template updated successfully' });
+    } catch (error) {
+        debug('Update template error:', error);
+        res.status(500).json({ message: 'An error occurred while updating the template' });
+    }
+});
+
+// Delete a template (admin only)
+router.delete('/:id', verifyToken, async (req, res) => {
+    try {
+        const [result] = await pool.query(
+            'DELETE FROM templates WHERE id = ?',
             [req.params.id]
         );
 
-        if (templates.length === 0) {
-            await connection.rollback();
-            return res.status(404).json({ message: 'Şablon bulunamadı' });
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Template not found' });
         }
 
-        const template = templates[0];
-
-        // Yeni sözleşme oluştur
-        const [result] = await connection.query(
-            'INSERT INTO contracts (title, content, user_id) VALUES (?, ?, ?)',
-            [template.title, template.content, req.userId]
-        );
-
-        await connection.commit();
-
-        res.status(201).json({
-            message: 'Sözleşme başarıyla oluşturuldu',
-            contractId: result.insertId
-        });
-    } catch (err) {
-        await connection.rollback();
-        console.error('Sözleşme oluşturma hatası:', err);
-        res.status(500).json({ message: 'Sözleşme oluşturulurken bir hata oluştu' });
-    } finally {
-        connection.release();
+        res.json({ message: 'Template deleted successfully' });
+    } catch (error) {
+        debug('Delete template error:', error);
+        res.status(500).json({ message: 'An error occurred while deleting the template' });
     }
 });
 
