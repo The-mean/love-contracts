@@ -1,43 +1,47 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import Button from '../components/Button';
 
-const CreateContract = () => {
-    const [templates, setTemplates] = useState([]);
-    const [selectedTemplate, setSelectedTemplate] = useState(null);
+const EditContract = () => {
+    const { id } = useParams();
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         title: '',
         content: '',
         partner_email: '',
     });
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
-    const navigate = useNavigate();
 
     useEffect(() => {
-        fetchTemplates();
-    }, []);
+        fetchContract();
+    }, [id]);
 
-    const fetchTemplates = async () => {
+    const fetchContract = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/templates');
+            const token = localStorage.getItem('token');
+            const response = await fetch(`http://localhost:5000/api/contracts/${id}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
             if (!response.ok) {
-                throw new Error('Failed to fetch templates');
+                throw new Error('Failed to fetch contract');
             }
+
             const data = await response.json();
-            setTemplates(data);
+            setFormData({
+                title: data.title,
+                content: data.content,
+                partner_email: data.partner_email,
+            });
         } catch (err) {
             setError(err.message);
+        } finally {
+            setLoading(false);
         }
-    };
-
-    const handleTemplateSelect = (template) => {
-        setSelectedTemplate(template);
-        setFormData(prev => ({
-            ...prev,
-            title: template.title,
-            content: template.content,
-        }));
     };
 
     const handleChange = (e) => {
@@ -51,12 +55,12 @@ const CreateContract = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-        setLoading(true);
+        setSaving(true);
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:5000/api/contracts', {
-                method: 'POST',
+            const response = await fetch(`http://localhost:5000/api/contracts/${id}`, {
+                method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
@@ -65,23 +69,38 @@ const CreateContract = () => {
             });
 
             if (!response.ok) {
-                throw new Error('Failed to create contract');
+                throw new Error('Failed to update contract');
             }
 
-            const data = await response.json();
-            navigate(`/contracts/${data.id}`);
+            navigate(`/contracts/${id}`);
         } catch (err) {
             setError(err.message);
         } finally {
-            setLoading(false);
+            setSaving(false);
         }
     };
+
+    if (loading) {
+        return (
+            <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
+                <span className="loading loading-spinner loading-lg"></span>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-primary/5 to-secondary/5">
             <div className="container mx-auto px-4 py-8">
                 <div className="max-w-4xl mx-auto">
-                    <h1 className="text-2xl font-bold text-neutral mb-8">Create New Contract</h1>
+                    <div className="flex justify-between items-center mb-8">
+                        <h1 className="text-2xl font-bold text-neutral">Edit Contract</h1>
+                        <Button
+                            variant="outline"
+                            onClick={() => navigate(`/contracts/${id}`)}
+                        >
+                            Cancel
+                        </Button>
+                    </div>
 
                     {error && (
                         <div className="alert alert-error mb-6">
@@ -92,30 +111,6 @@ const CreateContract = () => {
                         </div>
                     )}
 
-                    {/* Template Selection */}
-                    <div className="card bg-base-100 shadow-xl mb-8">
-                        <div className="card-body">
-                            <h2 className="card-title text-lg mb-4">Choose a Template</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {templates.map(template => (
-                                    <div
-                                        key={template.id}
-                                        className={`card bg-base-200 cursor-pointer transition-all duration-300 hover:shadow-md ${selectedTemplate?.id === template.id ? 'ring-2 ring-primary' : ''}`}
-                                        onClick={() => handleTemplateSelect(template)}
-                                    >
-                                        <div className="card-body">
-                                            <h3 className="font-medium">{template.title}</h3>
-                                            <p className="text-sm text-neutral/70 line-clamp-2">
-                                                {template.description}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Contract Form */}
                     <form onSubmit={handleSubmit} className="card bg-base-100 shadow-xl">
                         <div className="card-body space-y-6">
                             <div className="form-control">
@@ -166,13 +161,12 @@ const CreateContract = () => {
                                 <Button
                                     type="submit"
                                     variant="primary"
-                                    className="w-full sm:w-auto"
-                                    disabled={loading}
+                                    disabled={saving}
                                 >
-                                    {loading ? (
+                                    {saving ? (
                                         <span className="loading loading-spinner loading-sm"></span>
                                     ) : (
-                                        'Create Contract'
+                                        'Save Changes'
                                     )}
                                 </Button>
                             </div>
@@ -184,4 +178,4 @@ const CreateContract = () => {
     );
 };
 
-export default CreateContract; 
+export default EditContract; 
